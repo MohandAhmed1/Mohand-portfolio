@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mohand Ahmed — Front-End Developer</title>
+<meta name="description" content="Mohand Ahmed, front-end developer building fast, accessible interfaces with HTML, CSS, JavaScript and React.">
+<script>
+  (function() {
+    var saved = localStorage.getItem('portfolio-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#top" class="nav-mark">MA</a>
+    <nav class="nav-links">
+      <a href="#work">Work</a>
+      <a href="#about">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </button>
+    <a href="#contact" class="nav-cta">Let's talk</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <nav class="nav-links-mobile" id="navMobile">
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#skills">Skills</a>
+    <a href="#contact">Contact</a>
+    <button class="theme-toggle theme-toggle-mobile" id="themeToggleMobile" aria-label="Toggle dark mode">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <span>Toggle theme</span>
+    </button>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-text reveal">
+        <p class="hero-kicker">Front-end developer</p>
+        <h1 class="hero-title">I build interfaces<br>that feel <em>right</em> to use.</h1>
+        <p class="hero-sub">Mohand Ahmed — 25-year-old front-end developer turning designs into fast, accessible, well-structured products with HTML, CSS, JavaScript and React. Fresh out of Shorouk Academy, 2026, and ready to build.</p>
+        <div class="hero-actions">
+          <a href="#work" class="btn btn-primary">See my work</a>
+ <a href="Mohand_Ahmed_Resume.pdf" class="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+    View résumé
+</a>
+        </div>
+      </div>
+
+      <div class="hero-demo" aria-hidden="false">
+        <div class="demo-window">
+          <div class="demo-bar">
+            <span></span><span></span><span></span>
+            <p class="demo-url">component.tsx</p>
+          </div>
+          <div class="demo-body">
+            <p class="demo-label">Try it — this button is live</p>
+            <button class="demo-button" id="demoButton">Add to cart</button>
+
+            <div class="demo-row">
+              <p class="demo-label">Toggle</p>
+              <button class="demo-switch" id="demoSwitch" role="switch" aria-checked="false" aria-label="Toggle dark preview">
+                <span class="demo-switch-knob"></span>
+              </button>
+            </div>
+
+            <div class="demo-row">
+              <p class="demo-label">Progress on load</p>
+              <div class="demo-progress"><div class="demo-progress-fill" id="demoProgress"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="about" id="about">
+    <div class="section-inner about-grid">
+      <h2 class="section-title reveal">About</h2>
+      <div class="about-copy reveal">
+        <p>I'm Mohand, a 25-year-old front-end developer based in Egypt, focused on the layer of the web people actually touch: buttons, forms, layouts, and the small transitions that make an interface feel considered instead of assembled.</p>
+        <p>I graduated from Shorouk Academy in 2026 and work mainly with HTML, CSS and JavaScript, building component-driven interfaces with React when a project needs state and structure at scale. I care about clean markup, layouts that hold up on real devices, and code a teammate can read without asking me first.</p>
+        <p>Right now I'm looking for my first front-end role, where I can work closely with designers and backend engineers and grow into more complex product work.</p>
+      </div>
+      <dl class="about-facts reveal reveal-delay-1">
+        <div><dt>Name</dt><dd>Mohand Ahmed</dd></div>
+        <div><dt>Age</dt><dd>25</dd></div>
+        <div><dt>Education</dt><dd>Shorouk Academy, 2026</dd></div>
+        <div><dt>Based in</dt><dd>Egypt</dd></div>
+        <div><dt>Available for</dt><dd>Full-time &amp; freelance</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- SKILLS -->
+  <section class="skills" id="skills">
+    <div class="section-inner">
+      <h2 class="section-title reveal">Skills</h2>
+      <div class="skills-grid reveal reveal-delay-1">
+        <div class="skill-group">
+          <h3>Core</h3>
+          <ul>
+            <li>HTML5 &amp; semantic markup</li>
+            <li>CSS3 — Flexbox, Grid, animations</li>
+            <li>JavaScript (ES6+)</li>
+            <li>Responsive &amp; mobile-first design</li>
+          </ul>
+        </div>
+        <div class="skill-group">
+          <h3>Framework</h3>
+          <ul>
+            <li>React — hooks, component patterns</li>
+            <li>State management basics</li>
+            <li>REST API integration</li>
+            <li>React Router</li>
+          </ul>
+        </div>
+        <div class="skill-group">
+          <h3>Tooling</h3>
+          <ul>
+            <li>Git &amp; GitHub</li>
+            <li>npm / Vite</li>
+            <li>Chrome DevTools</li>
+            <li>Figma → code handoff</li>
+          </ul>
+        </div>
+        <div class="skill-group">
+          <h3>Practice</h3>
+          <ul>
+            <li>Cross-browser testing</li>
+            <li>Basic accessibility (WCAG)</li>
+            <li>Performance &amp; load-time basics</li>
+            <li>Clean, documented code</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORK -->
+  <section class="work" id="work">
+    <div class="section-inner">
+      <h2 class="section-title reveal">Selected work</h2>
+      <p class="section-note">Eight real, working apps — click "View live" to open and use each one, or check the source code.</p>
+
+      <div class="project project-a project-featured reveal">
+        <div class="project-media">
+          <a href="projects/hope/index.html" class="shot-link">
+            <img src="projects/hope/screenshot.png" alt="H.O.P.E humanitarian operations admin dashboard screenshot" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">01 — Product</p>
+          <h3>H.O.P.E — Admin Dashboard</h3>
+          <p>A full admin dashboard for a humanitarian emergency-response platform: live mesh-network stats, an interactive map for drawing safe/warning/danger zones, user moderation, analytics charts, and an alert broadcast system. Built end to end with React, TypeScript, and Leaflet.</p>
+          <ul class="project-stack">
+            <li>React</li><li>TypeScript</li><li>Tailwind CSS</li><li>Leaflet</li><li>Framer Motion</li><li>Recharts</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/hope/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/hope">Source code</a>
+          </div>
+          <p class="project-note">Demo login: <code>admin@hope.com</code> / <code>hope2026</code> — or tap the hint button on the login screen.</p>
+        </div>
+      </div>
+
+      <div class="project project-b reveal">
+        <div class="project-copy">
+          <p class="project-tag">02 — Machine Learning</p>
+          <h3>PredictIQ — House Price Predictor</h3>
+          <p>A real linear regression model trained in scikit-learn on 2,000 home sales, exported and run entirely client-side. Move the sliders and watch a live prediction, a feature-by-feature price breakdown, and a feature-importance chart — all driven by the model's actual learned coefficients.</p>
+          <ul class="project-stack">
+            <li>Python</li><li>scikit-learn</li><li>JavaScript</li><li>Canvas API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/house-price/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/house-price">Source code</a>
+          </div>
+        </div>
+        <div class="project-media">
+          <a href="projects/house-price/index.html" class="shot-link">
+            <img src="projects/house-price/screenshot.png" alt="PredictIQ house price predictor screenshot" loading="lazy">
+          </a>
+        </div>
+      </div>
+
+      <div class="project project-a reveal">
+        <div class="project-media">
+          <a href="projects/digit-net/index.html" class="shot-link">
+            <img src="projects/digit-net/screenshot.png" alt="NeuroDraw handwritten digit recognizer screenshot" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">03 — Deep Learning</p>
+          <h3>NeuroDraw — Digit Recognizer</h3>
+          <p>A real neural network (64→32→10) trained on 1,797 handwritten digit images, running live in the browser with zero backend. Draw a digit and the exact trained weights do a real forward pass — softmax probabilities for all ten digits, updated as you draw.</p>
+          <ul class="project-stack">
+            <li>Python</li><li>scikit-learn</li><li>Neural Networks</li><li>JavaScript</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/digit-net/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/digit-net">Source code</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="project project-b reveal">
+        <div class="project-media">
+          <a href="projects/taskflow/index.html" class="shot-link">
+            <img src="projects/taskflow/screenshot.png" alt="Taskflow multi-board task manager screenshot" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">04 — Productivity</p>
+          <h3>Taskflow</h3>
+          <p>A multi-board task manager built with React. Switch between boards, drag tasks between columns, edit them inline, and set a priority — everything persists to local storage per board.</p>
+          <ul class="project-stack">
+            <li>React</li><li>CSS Grid</li><li>Local Storage API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/taskflow/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/taskflow">Source code</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="project project-a reveal">
+        <div class="project-media">
+          <a href="projects/climate-glance/index.html" class="shot-link">
+            <img src="projects/climate-glance/screenshot.png" alt="Climate Glance weather app screenshot" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">05 — Data</p>
+          <h3>Climate Glance</h3>
+          <p>A weather dashboard on a real API. Search any city or use your live location, flip between °C/°F, and read a 24-hour temperature curve drawn on canvas alongside a 4-day outlook.</p>
+          <ul class="project-stack">
+            <li>JavaScript</li><li>Canvas API</li><li>Open-Meteo API</li><li>Geolocation</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/climate-glance/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/climate-glance">Source code</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="project project-b reveal">
+        <div class="project-copy">
+          <p class="project-tag">06 — Commerce</p>
+          <h3>Norrland — Storefront</h3>
+          <p>A full storefront demo: a hero banner, category browsing, live search and sorting, a wishlist, quick-view modals, a real cart, and account login/logout — checkout requires signing in first, just like a real store.</p>
+          <ul class="project-stack">
+            <li>HTML/CSS</li><li>Vanilla JS</li><li>Local Storage API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/storefront/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/storefront">Source code</a>
+          </div>
+          <p class="project-note">Demo login: <code>demo@norrland.shop</code> / <code>shop2026</code> — or tap the hint on the sign-in form.</p>
+        </div>
+        <div class="project-media">
+          <a href="projects/storefront/index.html" class="shot-link">
+            <img src="projects/storefront/screenshot.png" alt="Norrland storefront e-commerce demo screenshot" loading="lazy">
+          </a>
+        </div>
+      </div>
+
+      <div class="project project-a reveal">
+        <div class="project-media">
+          <a href="projects/mealbox/index.html" class="shot-link">
+            <img src="projects/mealbox/screenshot.png" alt="Mealbox recipe finder screenshot" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">07 — Food</p>
+          <h3>Mealbox</h3>
+          <p>A recipe finder on a live public recipe database. Search by dish, hit "Surprise me" for a random one, and open any result for full ingredients, quantities, and step-by-step instructions — save favorites for later.</p>
+          <ul class="project-stack">
+            <li>JavaScript</li><li>Fetch API</li><li>TheMealDB API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/mealbox/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/mealbox">Source code</a>
+          </div>
+        </div>
+      </div>
+
+<div class="project project-a reveal">
+        <div class="project-media">
+          <a href="projects/qr_code_generator/index.html" class="shot-link">
+            <img src="projects/qr_code_generator/QR-Code.png" alt="Qr Generator" loading="lazy">
+          </a>
+        </div>
+        <div class="project-copy">
+          <p class="project-tag">08 — Data</p>
+          <h3>Qr Generator</h3>
+          <p>A QR code generator built for instant sharing. Enter any text or URL, customize the code, generate it in  real time, and download your QR code as an image.</p>
+          <ul class="project-stack">
+            <li>JavaScript</li><li>Canvas API</li><li>Open-Meteo API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/qr_code_generator/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/climate-glance">Source code</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="project project-b reveal">
+        <div class="project-copy">
+          <p class="project-tag">09 — Analytics</p>
+          <h3>Pulse</h3>
+          <p>A habit tracker with a GitHub-style contribution heatmap per habit, automatic streak counting, a today completion ring, and a canvas-drawn chart of completions by day of the week.</p>
+          <ul class="project-stack">
+            <li>JavaScript</li><li>Canvas API</li><li>Local Storage API</li>
+          </ul>
+          <div class="project-links">
+            <a href="projects/pulse/index.html">View live ↗</a>
+            <a href="https://github.com/yourusername/portfolio/tree/main/projects/pulse">Source code</a>
+          </div>
+        </div>
+        <div class="project-media">
+          <a href="projects/pulse/index.html" class="shot-link">
+            <img src="projects/pulse/screenshot.png" alt="Pulse habit tracker screenshot" loading="lazy">
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="section-inner contact-inner">
+      <h2 class="contact-title reveal">Have a project, or an open role?</h2>
+      <p class="contact-sub">I reply to email fastest. Happy to send more work samples or a full résumé on request.</p>
+      <div class="contact-links">
+        <a href="mailto:mohand.ahmed.dev@example.com">mohand.ahmed.dev@example.com</a>
+        <a href="https://github.com/yourusername" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://linkedin.com/in/yourusername" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>Built by Mohand Ahmed — HTML, CSS &amp; JavaScript, no framework.</p>
+  <p>© <span id="year"></span></p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

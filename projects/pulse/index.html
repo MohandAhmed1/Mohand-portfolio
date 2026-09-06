@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — habit tracker</title>
+<meta name="description" content="Track daily habits with a contribution-style heatmap, streaks, and a weekly summary chart.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c1f1a; --paper:#f4faf7; --paper-dim:#e7f3ed; --line:#d7e8e0;
+    --text:#132420; --text-soft:#5c7a70; --accent:#0f9d68; --accent-soft:#d7f3e6; --accent-2:#ff9a3c;
+    --surface:#ffffff;
+    --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:var(--font-body); background:var(--paper); color:var(--text);}
+  button{font-family:inherit;}
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding:20px 32px; border-bottom:1px solid var(--line); background:var(--surface);
+  }
+  header h1{font-family:var(--font-display); font-size:1.2rem; margin:0; color:var(--accent);}
+  .today-stat{display:flex; align-items:center; gap:10px;}
+  .ring{width:40px; height:40px; border-radius:50%; position:relative;}
+  .ring svg{transform:rotate(-90deg);}
+  .today-stat span{font-family:var(--font-mono); font-size:0.8rem; color:var(--text-soft);}
+
+  .wrap{max-width:920px; margin:0 auto; padding:28px 24px 80px;}
+
+  .add-habit{display:flex; gap:8px; margin-bottom:28px;}
+  .add-habit input{flex:1; border:1px solid var(--line); border-radius:10px; padding:11px 14px; font-size:0.92rem; background:var(--surface);}
+  .add-habit input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .add-habit select{border:1px solid var(--line); border-radius:10px; padding:0 10px; font-size:0.85rem; background:var(--surface);}
+  .add-habit button{border:none; background:var(--accent); color:#fff; border-radius:10px; padding:0 18px; font-size:0.88rem; font-weight:500; cursor:pointer;}
+
+  .habit{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-bottom:16px;}
+  .habit-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+  .habit-name-row{display:flex; align-items:center; gap:10px;}
+  .dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
+  .habit-name{font-weight:600; font-size:1rem;}
+  .habit-stats{display:flex; gap:14px; align-items:center;}
+  .streak{font-family:var(--font-mono); font-size:0.78rem; color:var(--text-soft); background:var(--paper-dim); padding:4px 10px; border-radius:100px;}
+  .streak.hot{background:#fff1e0; color:#c9701f;}
+  .del-habit{background:none; border:none; color:var(--text-soft); cursor:pointer; font-size:1rem;}
+  .del-habit:hover{color:#e15b3f;}
+
+  .heatmap{display:grid; grid-template-columns:repeat(35, 1fr); gap:3px;}
+  .heatmap .cell{aspect-ratio:1; border-radius:3px; background:var(--paper-dim); cursor:pointer; border:1px solid transparent;}
+  .heatmap .cell:hover{border-color:var(--accent);}
+  .heatmap .cell.today{outline:1.5px solid var(--ink); outline-offset:1px;}
+
+  .weekly-chart{margin-top:36px;}
+  .weekly-chart h2{font-family:var(--font-display); font-size:1.05rem; margin-bottom:16px;}
+  canvas#weeklyChart{width:100%; height:160px; display:block;}
+
+  .empty{color:var(--text-soft); text-align:center; padding:50px 0; font-size:0.92rem;}
+  footer{max-width:920px; margin:0 auto; padding:10px 24px 40px; font-family:var(--font-mono); font-size:0.72rem; color:var(--text-soft); text-align:center;}
+  @media (max-width:600px){ .heatmap{grid-template-columns:repeat(20, 1fr);} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>◎ Pulse</h1>
+  <div class="today-stat">
+    <div class="ring" id="ring"></div>
+    <span id="todayLabel">0% today</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <form class="add-habit" id="addHabitForm">
+    <input type="text" id="habitInput" placeholder="Add a habit, e.g. &quot;Read 20 minutes&quot;…" required>
+    <select id="colorSelect">
+      <option value="#0f9d68">Green</option>
+      <option value="#2f7fff">Blue</option>
+      <option value="#ff9a3c">Orange</option>
+      <option value="#e15b3f">Red</option>
+      <option value="#6e56ff">Violet</option>
+    </select>
+    <button type="submit">Add habit</button>
+  </form>
+
+  <div id="habitsList"></div>
+
+  <div class="weekly-chart">
+    <h2>Completions by day of week</h2>
+    <canvas id="weeklyChart"></canvas>
+  </div>
+</div>
+
+<footer>All data is stored locally in your browser — nothing is sent anywhere.</footer>
+
+<script>
+const STORAGE_KEY = 'pulse-habits-v1';
+const DAYS_SHOWN = 35;
+
+function todayKey(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - offset);
+  return d.toISOString().slice(0, 10);
+}
+
+function loadHabits() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  // seed with example data: a few random days checked in the past for demo purposes
+  const seedLog = {};
+  for (let i = 1; i <= 12; i += 2) seedLog[todayKey(i)] = true;
+  return [
+    { id: 'h1', name: 'Read 20 minutes', color: '#0f9d68', log: { ...seedLog } },
+    { id: 'h2', name: 'Morning workout', color: '#2f7fff', log: { [todayKey(1)]: true, [todayKey(3)]: true, [todayKey(4)]: true } },
+  ];
+}
+
+let habits = loadHabits();
+
+function persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(habits)); }
+
+function computeStreak(habit) {
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    if (habit.log[todayKey(i)]) streak++;
+    else break;
+  }
+  return streak;
+}
+
+function renderRing(pct) {
+  const ring = document.getElementById('ring');
+  const r = 16, c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  ring.innerHTML = `
+    <svg width="40" height="40" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="${r}" fill="none" stroke="#e7f3ed" stroke-width="5"/>
+      <circle cx="20" cy="20" r="${r}" fill="none" stroke="#0f9d68" stroke-width="5"
+        stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+    </svg>`;
+}
+
+function renderTodayStat() {
+  if (habits.length === 0) { renderRing(0); document.getElementById('todayLabel').textContent = '0% today'; return; }
+  const doneToday = habits.filter(h => h.log[todayKey(0)]).length;
+  const pct = Math.round((doneToday / habits.length) * 100);
+  renderRing(pct);
+  document.getElementById('todayLabel').textContent = `${pct}% today (${doneToday}/${habits.length})`;
+}
+
+function renderHeatmap(habit) {
+  let cells = '';
+  for (let i = DAYS_SHOWN - 1; i >= 0; i--) {
+    const key = todayKey(i);
+    const done = !!habit.log[key];
+    const isToday = i === 0;
+    cells += `<div class="cell ${isToday ? 'today' : ''}" data-key="${key}" data-habit="${habit.id}"
+      style="background:${done ? habit.color : ''}" title="${key}"></div>`;
+  }
+  return cells;
+}
+
+function renderHabits() {
+  const list = document.getElementById('habitsList');
+  if (habits.length === 0) {
+    list.innerHTML = `<p class="empty">No habits yet — add one above to start tracking.</p>`;
+    return;
+  }
+  list.innerHTML = habits.map(h => {
+    const streak = computeStreak(h);
+    return `
+      <div class="habit">
+        <div class="habit-head">
+          <div class="habit-name-row">
+            <span class="dot" style="background:${h.color}"></span>
+            <span class="habit-name">${h.name}</span>
+          </div>
+          <div class="habit-stats">
+            <span class="streak ${streak >= 3 ? 'hot' : ''}">${streak >= 3 ? '🔥 ' : ''}${streak} day streak</span>
+            <button class="del-habit" data-del="${h.id}" aria-label="Delete habit">×</button>
+          </div>
+        </div>
+        <div class="heatmap">${renderHeatmap(h)}</div>
+      </div>
+    `;
+  }).join('');
+
+  list.querySelectorAll('.cell').forEach(cell => {
+    cell.addEventListener('click', () => toggleDay(cell.dataset.habit, cell.dataset.key));
+  });
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => deleteHabit(btn.dataset.del));
+  });
+}
+
+function toggleDay(habitId, key) {
+  const habit = habits.find(h => h.id === habitId);
+  if (!habit) return;
+  if (habit.log[key]) delete habit.log[key];
+  else habit.log[key] = true;
+  persist();
+  renderHabits();
+  renderTodayStat();
+  drawWeeklyChart();
+}
+
+function deleteHabit(id) {
+  habits = habits.filter(h => h.id !== id);
+  persist();
+  renderHabits();
+  renderTodayStat();
+  drawWeeklyChart();
+}
+
+document.getElementById('addHabitForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('habitInput');
+  const color = document.getElementById('colorSelect').value;
+  if (!input.value.trim()) return;
+  habits.push({ id: 'h' + Date.now(), name: input.value.trim(), color, log: {} });
+  input.value = '';
+  persist();
+  renderHabits();
+  renderTodayStat();
+  drawWeeklyChart();
+});
+
+function drawWeeklyChart() {
+  const canvas = document.getElementById('weeklyChart');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 160 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = 160;
+  ctx.clearRect(0, 0, w, h);
+
+  const dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const totals = [0,0,0,0,0,0,0];
+  habits.forEach(h => {
+    Object.keys(h.log).forEach(key => {
+      if (!h.log[key]) return;
+      const d = new Date(key + 'T00:00:00');
+      totals[d.getDay()]++;
+    });
+  });
+  const max = Math.max(...totals, 1);
+  const pad = 28, gap = 14;
+  const barW = (w - pad * 2 - gap * 6) / 7;
+
+  totals.forEach((v, i) => {
+    const barH = (h - pad - 20) * (v / max);
+    const x = pad + i * (barW + gap);
+    const y = h - pad - barH;
+    ctx.fillStyle = '#0f9d68';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, barW, barH, 4) : ctx.rect(x, y, barW, barH);
+    ctx.fill();
+
+    ctx.fillStyle = '#5c7a70';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(dayLabels[i], x + barW / 2, h - 8);
+    if (v > 0) ctx.fillText(String(v), x + barW / 2, y - 6);
+  });
+}
+
+renderHabits();
+renderTodayStat();
+drawWeeklyChart();
+window.addEventListener('resize', drawWeeklyChart);
+</script>
+</body>
+</html>

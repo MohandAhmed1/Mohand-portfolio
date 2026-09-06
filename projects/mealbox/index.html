@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mealbox — recipe finder</title>
+<meta name="description" content="Search real recipes by name or ingredient, view instructions, and save favorites.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b1810; --paper:#fdf6f0; --paper-dim:#f6e9dc; --line:#ecdac7;
+    --text:#2b1810; --text-soft:#8a6f5c; --accent:#e15b3f; --accent-2:#2f9e6e;
+    --surface:#ffffff;
+    --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:var(--font-body); background:var(--paper); color:var(--text);}
+  button{font-family:inherit;}
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    padding:20px 32px; border-bottom:1px solid var(--line); background:var(--surface);
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{font-family:var(--font-display); font-size:1.2rem; margin:0; color:var(--accent);}
+  .tabs{display:flex; gap:6px; background:var(--paper-dim); padding:4px; border-radius:100px;}
+  .tabs button{border:none; background:none; padding:7px 16px; border-radius:100px; font-size:0.85rem; color:var(--text-soft); cursor:pointer;}
+  .tabs button.active{background:var(--surface); color:var(--text); font-weight:500; box-shadow:0 1px 3px rgba(40,20,10,0.1);}
+
+  .wrap{max-width:1080px; margin:0 auto; padding:28px 24px 80px;}
+  .search-row{display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;}
+  .search-row input{
+    flex:1; min-width:200px; border:1px solid var(--line); border-radius:10px; padding:12px 16px;
+    font-size:0.95rem; background:var(--surface);
+  }
+  .search-row input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .search-row button{
+    border:none; background:var(--accent); color:#fff; border-radius:10px; padding:0 20px;
+    font-size:0.9rem; font-weight:500; cursor:pointer;
+  }
+  .surprise-btn{background:var(--ink) !important;}
+
+  .grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; min-height:200px;}
+  .meal-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+    cursor:pointer; transition:transform .15s; position:relative;
+  }
+  .meal-card:hover{transform:translateY(-3px);}
+  .meal-media{aspect-ratio:4/3; background:var(--paper-dim); overflow:hidden;}
+  .meal-media img{width:100%; height:100%; object-fit:cover; display:block;}
+  .meal-info{padding:14px 16px;}
+  .meal-cat{font-family:var(--font-mono); font-size:0.7rem; color:var(--accent-2); text-transform:uppercase; letter-spacing:0.03em;}
+  .meal-name{font-weight:600; font-size:0.95rem; margin-top:4px;}
+  .fav-toggle{
+    position:absolute; top:10px; right:10px; width:32px; height:32px; border-radius:50%;
+    background:rgba(255,255,255,0.92); border:1px solid var(--line); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:1rem;
+  }
+  .fav-toggle.active{color:var(--accent);}
+
+  .state{text-align:center; color:var(--text-soft); padding:60px 0; grid-column:1/-1;}
+  .state.error{color:var(--accent);}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(40,24,16,0.5); display:none; align-items:flex-start; justify-content:center;
+    z-index:30; padding:36px 20px; overflow-y:auto;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--surface); border-radius:18px; max-width:640px; width:100%; overflow:hidden; position:relative;}
+  .modal-media{aspect-ratio:16/9; background:var(--paper-dim); overflow:hidden;}
+  .modal-media img{width:100%; height:100%; object-fit:cover; display:block;}
+  .modal-close{position:absolute; top:14px; right:14px; background:rgba(255,255,255,0.92); border:1px solid var(--line); border-radius:50%; width:34px; height:34px; cursor:pointer; font-size:1.1rem;}
+  .modal-body{padding:26px 28px 30px;}
+  .modal-body h2{font-family:var(--font-display); margin:0 0 6px; font-size:1.4rem;}
+  .modal-tags{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+  .modal-tags span{font-family:var(--font-mono); font-size:0.72rem; background:var(--paper-dim); color:var(--text-soft); padding:4px 10px; border-radius:100px;}
+  .modal-section-title{font-weight:600; font-size:0.9rem; margin:20px 0 10px;}
+  .ingredients{display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; font-size:0.88rem;}
+  .ingredients li{display:flex; justify-content:space-between; border-bottom:1px dashed var(--line); padding:5px 0;}
+  .ingredients li span:last-child{color:var(--text-soft); font-family:var(--font-mono); font-size:0.8rem;}
+  .instructions{font-size:0.92rem; line-height:1.7; color:var(--text-soft); white-space:pre-line;}
+  .modal-actions{margin-top:22px; display:flex; gap:10px;}
+  .modal-actions button, .modal-actions a{
+    border:1px solid var(--line); background:var(--surface); border-radius:8px; padding:10px 16px;
+    font-size:0.85rem; cursor:pointer; text-decoration:none; color:var(--text);
+  }
+  .modal-actions .fav-btn.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+
+  footer{max-width:1080px; margin:0 auto; padding:20px 24px; font-family:var(--font-mono); font-size:0.72rem; color:var(--text-soft); text-align:center;}
+  @media (max-width:760px){ .grid{grid-template-columns:repeat(2, 1fr);} .ingredients{grid-template-columns:1fr;} }
+  @media (max-width:480px){ .grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍲 Mealbox</h1>
+  <div class="tabs">
+    <button class="active" id="tabSearch">Search</button>
+    <button id="tabFavs">Favorites <span id="favCount">(0)</span></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="search-row" id="searchRow">
+    <input type="text" id="searchInput" placeholder="Search a dish, e.g. &quot;chicken&quot;, &quot;pasta&quot;…">
+    <button id="searchBtn">Search</button>
+    <button class="surprise-btn" id="surpriseBtn">🎲 Surprise me</button>
+  </div>
+  <div class="grid" id="grid">
+    <p class="state">Search for a dish to get started, or hit "Surprise me".</p>
+  </div>
+</div>
+
+<footer>Recipe data from TheMealDB</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const API_BASE = "https://www.themealdb.com/api/json/v1/1";
+let favorites = JSON.parse(localStorage.getItem('mealbox-favorites') || '[]');
+let currentView = 'search';
+let lastResults = [];
+
+const grid = document.getElementById('grid');
+const searchInput = document.getElementById('searchInput');
+const searchRow = document.getElementById('searchRow');
+const favCountEl = document.getElementById('favCount');
+const tabSearch = document.getElementById('tabSearch');
+const tabFavs = document.getElementById('tabFavs');
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modal = document.getElementById('modal');
+
+function persist() { localStorage.setItem('mealbox-favorites', JSON.stringify(favorites)); }
+
+function updateFavCount() { favCountEl.textContent = `(${favorites.length})`; }
+
+function renderGrid(meals) {
+  if (!meals || meals.length === 0) {
+    grid.innerHTML = `<p class="state">No recipes found. Try another search.</p>`;
+    return;
+  }
+  grid.innerHTML = meals.map(m => `
+    <div class="meal-card" data-id="${m.idMeal}">
+      <div class="meal-media"><img src="${m.strMealThumb}" alt="${m.strMeal}" loading="lazy"></div>
+      <button class="fav-toggle ${favorites.includes(m.idMeal) ? 'active' : ''}" data-id="${m.idMeal}" aria-label="Toggle favorite">♥</button>
+      <div class="meal-info">
+        <p class="meal-cat">${m.strArea || m.strCategory || ''}</p>
+        <p class="meal-name">${m.strMeal}</p>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.meal-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.fav-toggle')) return;
+      openMealModal(card.dataset.id);
+    });
+  });
+  grid.querySelectorAll('.fav-toggle').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(btn.dataset.id); });
+  });
+}
+
+function toggleFav(id) {
+  if (favorites.includes(id)) favorites = favorites.filter(f => f !== id);
+  else favorites.push(id);
+  persist();
+  updateFavCount();
+  if (currentView === 'search') {
+    const btn = grid.querySelector(`.fav-toggle[data-id="${id}"]`);
+    if (btn) btn.classList.toggle('active');
+  } else {
+    loadFavorites();
+  }
+}
+
+async function searchMeals(query) {
+  grid.innerHTML = `<p class="state">Searching…</p>`;
+  try {
+    const res = await fetch(`${API_BASE}/search.php?s=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    lastResults = data.meals || [];
+    renderGrid(lastResults);
+  } catch (err) {
+    grid.innerHTML = `<p class="state error">Couldn't reach the recipe database. Try again.</p>`;
+  }
+}
+
+async function surpriseMe() {
+  grid.innerHTML = `<p class="state">Picking something delicious…</p>`;
+  try {
+    const res = await fetch(`${API_BASE}/random.php`);
+    const data = await res.json();
+    lastResults = data.meals || [];
+    renderGrid(lastResults);
+  } catch (err) {
+    grid.innerHTML = `<p class="state error">Couldn't reach the recipe database. Try again.</p>`;
+  }
+}
+
+async function loadFavorites() {
+  if (favorites.length === 0) {
+    grid.innerHTML = `<p class="state">No favorites yet — search for a recipe and tap the heart.</p>`;
+    return;
+  }
+  grid.innerHTML = `<p class="state">Loading favorites…</p>`;
+  try {
+    const results = await Promise.all(favorites.map(id => fetch(`${API_BASE}/lookup.php?i=${id}`).then(r => r.json())));
+    const meals = results.map(r => r.meals && r.meals[0]).filter(Boolean);
+    renderGrid(meals);
+  } catch (err) {
+    grid.innerHTML = `<p class="state error">Couldn't load favorites. Try again.</p>`;
+  }
+}
+
+function getIngredients(meal) {
+  const list = [];
+  for (let i = 1; i <= 20; i++) {
+    const ing = meal[`strIngredient${i}`];
+    const measure = meal[`strMeasure${i}`];
+    if (ing && ing.trim()) list.push({ ing: ing.trim(), measure: (measure || '').trim() });
+  }
+  return list;
+}
+
+async function openMealModal(id) {
+  modal.innerHTML = `<div class="state">Loading recipe…</div>`;
+  modalBackdrop.classList.add('open');
+  try {
+    const res = await fetch(`${API_BASE}/lookup.php?i=${id}`);
+    const data = await res.json();
+    const meal = data.meals[0];
+    const ingredients = getIngredients(meal);
+    const isFav = favorites.includes(meal.idMeal);
+
+    modal.innerHTML = `
+      <button class="modal-close" data-close>×</button>
+      <div class="modal-media"><img src="${meal.strMealThumb}" alt="${meal.strMeal}"></div>
+      <div class="modal-body">
+        <h2>${meal.strMeal}</h2>
+        <div class="modal-tags">
+          ${meal.strCategory ? `<span>${meal.strCategory}</span>` : ''}
+          ${meal.strArea ? `<span>${meal.strArea}</span>` : ''}
+        </div>
+        <p class="modal-section-title">Ingredients</p>
+        <ul class="ingredients">
+          ${ingredients.map(i => `<li><span>${i.ing}</span><span>${i.measure}</span></li>`).join('')}
+        </ul>
+        <p class="modal-section-title">Instructions</p>
+        <p class="instructions">${meal.strInstructions}</p>
+        <div class="modal-actions">
+          <button class="fav-btn ${isFav ? 'active' : ''}" data-fav="${meal.idMeal}">${isFav ? '♥ Saved to favorites' : '♡ Save to favorites'}</button>
+          ${meal.strYoutube ? `<a href="${meal.strYoutube}" target="_blank" rel="noopener">▶ Watch video</a>` : ''}
+        </div>
+      </div>
+    `;
+    modal.querySelector('[data-close]').addEventListener('click', () => modalBackdrop.classList.remove('open'));
+    modal.querySelector('[data-fav]').addEventListener('click', (e) => {
+      toggleFav(meal.idMeal);
+      e.target.classList.toggle('active');
+      e.target.textContent = e.target.classList.contains('active') ? '♥ Saved to favorites' : '♡ Save to favorites';
+    });
+  } catch (err) {
+    modal.innerHTML = `<button class="modal-close" data-close>×</button><div class="state error">Couldn't load this recipe.</div>`;
+    modal.querySelector('[data-close]').addEventListener('click', () => modalBackdrop.classList.remove('open'));
+  }
+}
+
+modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) modalBackdrop.classList.remove('open'); });
+
+document.getElementById('searchBtn').addEventListener('click', () => { if (searchInput.value.trim()) searchMeals(searchInput.value.trim()); });
+searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && searchInput.value.trim()) searchMeals(searchInput.value.trim()); });
+document.getElementById('surpriseBtn').addEventListener('click', surpriseMe);
+
+tabSearch.addEventListener('click', () => {
+  currentView = 'search';
+  tabSearch.classList.add('active'); tabFavs.classList.remove('active');
+  searchRow.style.display = 'flex';
+  renderGrid(lastResults.length ? lastResults : null);
+  if (!lastResults.length) grid.innerHTML = `<p class="state">Search for a dish to get started, or hit "Surprise me".</p>`;
+});
+tabFavs.addEventListener('click', () => {
+  currentView = 'favs';
+  tabFavs.classList.add('active'); tabSearch.classList.remove('active');
+  searchRow.style.display = 'none';
+  loadFavorites();
+});
+
+updateFavCount();
+</script>
+</body>
+</html>

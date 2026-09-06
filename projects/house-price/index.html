@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PredictIQ — House Price Predictor</title>
+<meta name="description" content="A real trained linear regression model predicting house prices, running entirely in the browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0d1420; --paper:#f5f7fa; --paper-dim:#eaeef3; --line:#dde3ea;
+    --text:#111827; --text-soft:#5b6472; --accent:#2563eb; --accent-2:#10b981;
+    --surface:#ffffff;
+    --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:var(--font-body); background:var(--paper); color:var(--text); -webkit-font-smoothing:antialiased;}
+  button{font-family:inherit;}
+
+  header{
+    background:linear-gradient(120deg,#0d1420,#161f34 60%,#0d1420);
+    color:#fff; padding:54px 32px 70px; position:relative; overflow:hidden;
+  }
+  header::before{
+    content:""; position:absolute; width:420px; height:420px; border-radius:50%;
+    background:radial-gradient(circle, rgba(37,99,235,0.35), transparent 70%);
+    top:-160px; right:-80px;
+  }
+  .header-inner{max-width:1120px; margin:0 auto; position:relative; z-index:1;}
+  .eyebrow{font-family:var(--font-mono); font-size:0.8rem; color:#93c5fd; letter-spacing:0.03em; display:flex; align-items:center; gap:10px;}
+  .eyebrow .dot{width:7px; height:7px; border-radius:50%; background:var(--accent-2); box-shadow:0 0 0 4px rgba(16,185,129,0.2);}
+  header h1{font-family:var(--font-display); font-size:clamp(1.9rem,4vw,2.6rem); margin:16px 0 12px;}
+  header p{color:#b7c0d1; max-width:60ch; line-height:1.6; margin:0;}
+  .model-stats{display:flex; gap:34px; margin-top:34px; flex-wrap:wrap;}
+  .model-stats div{font-family:var(--font-display); font-size:1.7rem; font-weight:700;}
+  .model-stats span{display:block; font-family:var(--font-body); font-size:0.78rem; color:#8b93a7; font-weight:400; margin-top:2px;}
+
+  .wrap{max-width:1120px; margin:-38px auto 80px; padding:0 32px; position:relative; z-index:2;}
+  .layout{display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:30px; box-shadow:0 30px 60px -40px rgba(13,20,32,0.25);}
+  .card h2{font-family:var(--font-display); font-size:1.15rem; margin:0 0 22px;}
+
+  .field{margin-bottom:22px;}
+  .field-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;}
+  .field-head label{font-size:0.9rem; font-weight:600;}
+  .field-head output{font-family:var(--font-mono); font-size:0.85rem; color:var(--accent); font-weight:600;}
+  input[type="range"]{
+    width:100%; height:6px; border-radius:100px; background:var(--paper-dim); appearance:none; cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent);
+    border:3px solid #fff; box-shadow:0 2px 8px rgba(37,99,235,0.4); cursor:pointer;
+  }
+  .field-range{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:0.7rem; color:var(--text-soft); margin-top:4px;}
+
+  .predict-card{
+    background:linear-gradient(145deg, #0d1420, #1a2438);
+    color:#fff; text-align:center; padding:40px 30px;
+  }
+  .predict-label{font-family:var(--font-mono); font-size:0.8rem; color:#93c5fd; margin-bottom:10px;}
+  .predict-value{font-family:var(--font-display); font-size:3.2rem; font-weight:800;}
+  .predict-range{color:#8b93a7; font-size:0.85rem; margin-top:8px; font-family:var(--font-mono);}
+
+  .breakdown{margin-top:26px; text-align:left;}
+  .breakdown-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; font-size:0.85rem;}
+  .breakdown-row .b-label{width:110px; flex-shrink:0; color:#b7c0d1;}
+  .breakdown-bar-track{flex:1; height:8px; background:rgba(255,255,255,0.1); border-radius:100px; overflow:hidden;}
+  .breakdown-bar-fill{height:100%; border-radius:100px; background:linear-gradient(90deg,#2563eb,#60a5fa);}
+  .breakdown-bar-fill.negative{background:linear-gradient(90deg,#dc2626,#f87171);}
+  .b-val{width:64px; text-align:right; font-family:var(--font-mono); color:#fff; flex-shrink:0;}
+
+  .metrics-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:20px;}
+  .metric-box{background:var(--paper-dim); border-radius:12px; padding:16px; text-align:center;}
+  .metric-box .m-val{font-family:var(--font-display); font-size:1.4rem; font-weight:700; color:var(--accent);}
+  .metric-box .m-label{font-size:0.72rem; color:var(--text-soft); font-family:var(--font-mono); margin-top:4px;}
+
+  .chart-wrap{margin-top:10px;}
+  canvas{width:100%; display:block;}
+
+  .about-model{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:30px; margin-top:24px;}
+  .about-model h2{font-family:var(--font-display); font-size:1.1rem; margin:0 0 12px;}
+  .about-model p{color:var(--text-soft); font-size:0.92rem; line-height:1.7; margin:0 0 10px;}
+  .about-model code{font-family:var(--font-mono); background:var(--paper-dim); padding:2px 6px; border-radius:4px; font-size:0.85rem;}
+
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} .model-stats{gap:24px;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <p class="eyebrow"><span class="dot"></span>MACHINE LEARNING · LIVE INFERENCE IN YOUR BROWSER</p>
+    <h1>PredictIQ — House Price Predictor</h1>
+    <p>A real linear regression model, trained in scikit-learn on 2,000 synthetic home sales, running entirely client-side in JavaScript. Move the sliders — the prediction updates using the model's actual learned coefficients, no server involved.</p>
+    <div class="model-stats">
+      <div id="statR2">—<span>R² score</span></div>
+      <div id="statMAE">—<span>Mean abs. error</span></div>
+      <div id="statTrain">—<span>Training rows</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <div class="card">
+      <h2>Property details</h2>
+      <div id="fields"></div>
+    </div>
+
+    <div>
+      <div class="card predict-card">
+        <p class="predict-label">PREDICTED PRICE</p>
+        <p class="predict-value" id="predictValue">$0</p>
+        <p class="predict-range" id="predictRange">± $0k typical error</p>
+        <div class="breakdown" id="breakdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card about-model" style="margin-top:24px;">
+    <h2>How this works</h2>
+    <p>The model is a <code>scikit-learn LinearRegression</code> fit on six features: square footage, bedrooms, bathrooms, age, a location desirability score, and garage spaces. After training, the learned <code>coefficients</code> and <code>intercept</code> were exported as JSON and embedded directly in this page — the "AI" here is just the dot product of your inputs with those real learned weights, computed live in JavaScript.</p>
+    <div class="metrics-grid">
+      <div class="metric-box"><div class="m-val" id="mR2">—</div><div class="m-label">R² ON TEST SET</div></div>
+      <div class="metric-box"><div class="m-val" id="mMAE">—</div><div class="m-label">MAE ($K)</div></div>
+      <div class="metric-box"><div class="m-val" id="mSamples">—</div><div class="m-label">TOTAL SAMPLES</div></div>
+    </div>
+    <div class="chart-wrap">
+      <p style="font-size:0.85rem; font-weight:600; margin:24px 0 10px;">Feature importance (model coefficients, standardized impact)</p>
+      <canvas id="importanceChart" height="140"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Real trained model, exported from scikit-learn ---------- */
+const MODEL = {
+  coef: [0.13942, 8.66397, 7.29485, -0.57415, 14.17701, 5.43436],
+  intercept: 44.79,
+  features: ["sqft", "bedrooms", "bathrooms", "age", "location_score", "garage"],
+  r2: 0.9658,
+  mae: 15.08,
+  train_samples: 1600,
+  test_samples: 400
+};
+
+const FIELD_CONFIG = [
+  { key: "sqft", label: "Square footage", min: 450, max: 5500, step: 10, default: 1800, unit: "sqft" },
+  { key: "bedrooms", label: "Bedrooms", min: 1, max: 6, step: 1, default: 3, unit: "" },
+  { key: "bathrooms", label: "Bathrooms", min: 1, max: 4, step: 0.5, default: 2, unit: "" },
+  { key: "age", label: "Age of home", min: 0, max: 60, step: 1, default: 12, unit: "yrs" },
+  { key: "location_score", label: "Location score", min: 1, max: 10, step: 0.5, default: 6.5, unit: "/10" },
+  { key: "garage", label: "Garage spaces", min: 0, max: 3, step: 1, default: 1, unit: "" },
+];
+
+const FEATURE_LABELS = {
+  sqft: "Square footage", bedrooms: "Bedrooms", bathrooms: "Bathrooms",
+  age: "Age", location_score: "Location", garage: "Garage"
+};
+
+let values = {};
+FIELD_CONFIG.forEach(f => values[f.key] = f.default);
+
+const fieldsEl = document.getElementById('fields');
+const predictValueEl = document.getElementById('predictValue');
+const predictRangeEl = document.getElementById('predictRange');
+const breakdownEl = document.getElementById('breakdown');
+
+function renderFields() {
+  fieldsEl.innerHTML = FIELD_CONFIG.map(f => `
+    <div class="field">
+      <div class="field-head">
+        <label for="in-${f.key}">${f.label}</label>
+        <output id="out-${f.key}">${values[f.key]}${f.unit}</output>
+      </div>
+      <input type="range" id="in-${f.key}" min="${f.min}" max="${f.max}" step="${f.step}" value="${values[f.key]}">
+      <div class="field-range"><span>${f.min}${f.unit}</span><span>${f.max}${f.unit}</span></div>
+    </div>
+  `).join('');
+
+  FIELD_CONFIG.forEach(f => {
+    const input = document.getElementById(`in-${f.key}`);
+    input.addEventListener('input', () => {
+      values[f.key] = Number(input.value);
+      document.getElementById(`out-${f.key}`).textContent = values[f.key] + f.unit;
+      predict();
+    });
+  });
+}
+
+function predict() {
+  const x = FIELD_CONFIG.map(f => values[f.key]);
+  const contributions = MODEL.coef.map((c, i) => c * x[i]);
+  const total = contributions.reduce((a, b) => a + b, 0) + MODEL.intercept;
+  const priceK = Math.max(total, 40);
+
+  predictValueEl.textContent = '$' + Math.round(priceK * 1000).toLocaleString();
+  predictRangeEl.textContent = `± $${Math.round(MODEL.mae)}k typical error (test MAE)`;
+
+  const maxAbs = Math.max(...contributions.map(c => Math.abs(c)), Math.abs(MODEL.intercept));
+  const rows = MODEL.features.map((feat, i) => ({ label: FEATURE_LABELS[feat], val: contributions[i] }));
+  rows.unshift({ label: "Base price", val: MODEL.intercept });
+
+  breakdownEl.innerHTML = rows.map(r => {
+    const pct = Math.min(100, Math.abs(r.val) / maxAbs * 100);
+    const neg = r.val < 0;
+    return `
+      <div class="breakdown-row">
+        <span class="b-label">${r.label}</span>
+        <div class="breakdown-bar-track"><div class="breakdown-bar-fill ${neg ? 'negative' : ''}" style="width:${pct}%"></div></div>
+        <span class="b-val">${neg ? '-' : '+'}$${Math.abs(Math.round(r.val))}k</span>
+      </div>`;
+  }).join('');
+}
+
+function animateStat(id, target, decimals, prefix, suffix) {
+  const el = document.getElementById(id);
+  let start = 0;
+  const dur = 900;
+  const t0 = performance.now();
+  function tick(t) {
+    const p = Math.min(1, (t - t0) / dur);
+    const val = start + (target - start) * (1 - Math.pow(1 - p, 3));
+    el.textContent = (prefix || '') + val.toFixed(decimals) + (suffix || '');
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function drawImportanceChart() {
+  const canvas = document.getElementById('importanceChart');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const h = 140;
+  canvas.width = rect.width * dpr;
+  canvas.height = h * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width;
+  ctx.clearRect(0, 0, w, h);
+
+  // "standardized" impact = coef * typical range, for fair comparison
+  const ranges = { sqft: 5050, bedrooms: 5, bathrooms: 3, age: 60, location_score: 9, garage: 3 };
+  const impacts = MODEL.features.map((f, i) => Math.abs(MODEL.coef[i] * ranges[f]));
+  const max = Math.max(...impacts);
+  const labels = MODEL.features.map(f => FEATURE_LABELS[f]);
+
+  const barH = 18, gap = 10;
+  const leftPad = 96;
+  labels.forEach((label, i) => {
+    const y = i * (barH + gap) + 6;
+    const barW = (impacts[i] / max) * (w - leftPad - 50);
+    ctx.fillStyle = '#5b6472';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(label, leftPad - 12, y + barH * 0.72);
+
+    ctx.fillStyle = '#eaeef3';
+    ctx.beginPath();
+    ctx.roundRect(leftPad, y, w - leftPad - 50, barH, 5);
+    ctx.fill();
+
+    const grad = ctx.createLinearGradient(leftPad, 0, leftPad + barW, 0);
+    grad.addColorStop(0, '#2563eb');
+    grad.addColorStop(1, '#60a5fa');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(leftPad, y, barW, barH, 5);
+    ctx.fill();
+  });
+}
+
+renderFields();
+predict();
+drawImportanceChart();
+animateStat('statR2', MODEL.r2, 3, '', '');
+animateStat('statMAE', MODEL.mae, 1, '$', 'k');
+animateStat('statTrain', MODEL.train_samples, 0, '', '');
+document.getElementById('mR2').textContent = MODEL.r2;
+document.getElementById('mMAE').textContent = '$' + MODEL.mae + 'k';
+document.getElementById('mSamples').textContent = MODEL.train_samples + MODEL.test_samples;
+window.addEventListener('resize', drawImportanceChart);
+</script>
+</body>
+</html>

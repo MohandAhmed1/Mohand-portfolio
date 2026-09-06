@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Climate Glance — weather dashboard</title>
+<meta name="description" content="A weather dashboard with hourly charts, geolocation, and unit toggle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12233a; --paper:#f3f7fb; --line:#dbe6f0; --text:#152233; --text-soft:#5c7086;
+    --accent:#2f7fff; --accent-2:#ff9a3c; --surface:#ffffff; --error:#ff6a5e;
+    --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; min-height:100vh; font-family:var(--font-body); background:linear-gradient(180deg, #eaf2fb, var(--paper)); color:var(--text); display:flex; align-items:flex-start; justify-content:center; padding:36px 16px;}
+  .app{width:100%; max-width:480px;}
+  .card{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:18px; overflow:hidden; box-shadow:0 24px 60px -34px rgba(20,40,70,0.35);
+  }
+  .search{display:flex; gap:8px; padding:18px 20px; border-bottom:1px solid var(--line); align-items:center;}
+  .search input{
+    flex:1; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    font-family:var(--font-body); font-size:0.95rem;
+  }
+  .search input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .icon-btn, .search button{
+    border:none; background:var(--ink); color:#fff; border-radius:8px; padding:10px 14px;
+    font-size:0.85rem; font-weight:500; cursor:pointer; white-space:nowrap;
+  }
+  .icon-btn{background:var(--paper); color:var(--text-soft); border:1px solid var(--line);}
+  .icon-btn:hover{color:var(--text);}
+
+  .chips{display:flex; gap:8px; padding:0 20px 16px; flex-wrap:wrap;}
+  .chips button{
+    border:1px solid var(--line); background:var(--paper); border-radius:100px; padding:5px 12px;
+    font-size:0.75rem; color:var(--text-soft); cursor:pointer;
+  }
+  .chips button:hover{color:var(--text); border-color:var(--accent);}
+
+  .unit-toggle{display:flex; border:1px solid var(--line); border-radius:100px; overflow:hidden; margin-left:auto;}
+  .unit-toggle button{border:none; background:var(--paper); padding:6px 12px; font-size:0.78rem; font-family:var(--font-mono); cursor:pointer; color:var(--text-soft);}
+  .unit-toggle button.active{background:var(--ink); color:#fff;}
+
+  .body{padding:8px 28px 30px; text-align:center; min-height:200px;}
+  .icon{width:64px; height:64px; margin:8px auto 0;}
+  .city{font-family:var(--font-mono); font-size:0.85rem; color:var(--text-soft);}
+  .temp{font-family:var(--font-display); font-size:3.4rem; font-weight:600; margin:4px 0 4px;}
+  .desc{font-size:0.9rem; color:var(--text-soft); margin-bottom:6px;}
+  .range{font-size:0.8rem; color:var(--text-soft); margin-bottom:20px;}
+
+  .hourly-title{text-align:left; font-size:0.78rem; font-weight:600; color:var(--text-soft); margin:0 0 8px;}
+  canvas#hourlyChart{width:100%; height:120px; display:block;}
+
+  .forecast{display:flex; justify-content:space-between; gap:6px; margin-top:22px;}
+  .forecast div{display:flex; flex-direction:column; align-items:center; gap:6px; font-size:0.8rem; color:var(--text-soft);}
+  .forecast svg{width:22px; height:22px;}
+  .forecast em{font-style:normal; font-weight:600; color:var(--text);}
+
+  .state{color:var(--text-soft); font-size:0.9rem; padding:40px 0;}
+  .state.error{color:var(--error);}
+  footer{padding:14px 20px; text-align:center; font-family:var(--font-mono); font-size:0.72rem; color:var(--text-soft); border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <form class="search" id="searchForm">
+      <input type="text" id="cityInput" placeholder="Search a city…" value="Cairo" autocomplete="off">
+      <button class="icon-btn" type="button" id="geoBtn" title="Use my location">📍</button>
+      <button type="submit">Go</button>
+    </form>
+    <div class="chips">
+      <div class="unit-toggle">
+        <button id="unitC" class="active">°C</button>
+        <button id="unitF">°F</button>
+      </div>
+      <div id="recentChips" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    </div>
+    <div class="body" id="body">
+      <p class="state">Loading Cairo…</p>
+    </div>
+    <footer>Live data from Open-Meteo &amp; BigDataCloud</footer>
+  </div>
+</div>
+
+<script>
+const body = document.getElementById('body');
+const form = document.getElementById('searchForm');
+const input = document.getElementById('cityInput');
+const geoBtn = document.getElementById('geoBtn');
+const unitCBtn = document.getElementById('unitC');
+const unitFBtn = document.getElementById('unitF');
+const recentChipsEl = document.getElementById('recentChips');
+
+let unit = 'C';
+let lastData = null;
+let recent = JSON.parse(localStorage.getItem('climate-recent') || '["Cairo"]');
+
+const WEATHER_ICONS = {
+  sun: `<circle cx="32" cy="32" r="14" fill="#ff9a3c"/>`,
+  cloud: `<circle cx="26" cy="26" r="11" fill="#ff9a3c"/><path d="M18 40h28a9 9 0 100-18 13 13 0 00-24.7 4.2A8 8 0 0018 40z" fill="#fff" stroke="#dbe6f0" stroke-width="1.5"/>`,
+  rain: `<path d="M16 34h32a10 10 0 100-20 14 14 0 00-27 4.6A9 9 0 0016 34z" fill="#c3d2e0"/><line x1="22" y1="42" x2="19" y2="50" stroke="#2f7fff" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="42" x2="29" y2="50" stroke="#2f7fff" stroke-width="2" stroke-linecap="round"/><line x1="42" y1="42" x2="39" y2="50" stroke="#2f7fff" stroke-width="2" stroke-linecap="round"/>`,
+  storm: `<path d="M16 30h32a10 10 0 100-20 14 14 0 00-27 4.6A9 9 0 0016 30z" fill="#8b98a8"/><polygon points="30,34 22,48 30,48 26,58 40,42 32,42" fill="#ff9a3c"/>`,
+  snow: `<path d="M16 30h32a10 10 0 100-20 14 14 0 00-27 4.6A9 9 0 0016 30z" fill="#d9e3f0"/><circle cx="22" cy="46" r="2.5" fill="#2f7fff"/><circle cx="32" cy="50" r="2.5" fill="#2f7fff"/><circle cx="42" cy="46" r="2.5" fill="#2f7fff"/>`
+};
+
+function iconSvg(code, size) {
+  const key = iconKey(code);
+  return `<svg viewBox="0 0 64 64" fill="none" width="${size}" height="${size}">${WEATHER_ICONS[key]}</svg>`;
+}
+function iconKey(code) {
+  if (code === 0) return 'sun';
+  if ([1,2,3,45,48].includes(code)) return 'cloud';
+  if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return 'rain';
+  if ([71,73,75,77,85,86].includes(code)) return 'snow';
+  if ([95,96,99].includes(code)) return 'storm';
+  return 'cloud';
+}
+function descForCode(code) {
+  const map = {0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",
+    51:"Light drizzle",53:"Drizzle",55:"Dense drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",
+    71:"Light snow",73:"Snow",75:"Heavy snow",80:"Rain showers",81:"Rain showers",82:"Violent showers",
+    95:"Thunderstorm",96:"Thunderstorm",99:"Thunderstorm"};
+  return map[code] || "—";
+}
+function dayLabel(dateStr, idx) {
+  if (idx === 0) return "Today";
+  return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short' });
+}
+function c2f(c) { return Math.round(c * 9/5 + 32); }
+function fmtTemp(celsius) { return unit === 'C' ? Math.round(celsius) : c2f(celsius); }
+
+function drawHourlyChart(hours, temps) {
+  const canvas = document.getElementById('hourlyChart');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = 120 * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = 120;
+  ctx.clearRect(0, 0, w, h);
+
+  const vals = temps.map(t => unit === 'C' ? t : c2f(t));
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const pad = 18;
+  const stepX = (w - pad * 2) / (vals.length - 1);
+
+  function y(v) {
+    if (max === min) return h / 2;
+    return pad + (h - pad * 2) * (1 - (v - min) / (max - min));
+  }
+
+  // line
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = pad + i * stepX;
+    const yy = y(v);
+    if (i === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
+  });
+  ctx.strokeStyle = '#2f7fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // fill
+  ctx.lineTo(pad + (vals.length - 1) * stepX, h - pad);
+  ctx.lineTo(pad, h - pad);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(47,127,255,0.08)';
+  ctx.fill();
+
+  // labels every 4 hours
+  ctx.fillStyle = '#5c7086';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  hours.forEach((hr, i) => {
+    if (i % 4 === 0) {
+      const x = pad + i * stepX;
+      const dt = new Date(hr);
+      ctx.fillText(dt.getHours() + ':00', x, h - 2);
+      ctx.beginPath();
+      ctx.arc(x, y(vals[i]), 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#2f7fff';
+      ctx.fill();
+      ctx.fillStyle = '#5c7086';
+    }
+  });
+}
+
+function renderRecent() {
+  recentChipsEl.innerHTML = recent.slice(0, 4).map(c => `<button data-city="${c}">${c}</button>`).join('');
+  recentChipsEl.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => { input.value = btn.dataset.city; fetchWeather(btn.dataset.city); });
+  });
+}
+
+function pushRecent(city) {
+  recent = [city, ...recent.filter(c => c.toLowerCase() !== city.toLowerCase())].slice(0, 4);
+  localStorage.setItem('climate-recent', JSON.stringify(recent));
+  renderRecent();
+}
+
+function renderWeather() {
+  if (!lastData) return;
+  const { name, country, current, daily, hourly } = lastData;
+
+  const forecastHtml = daily.time.map((date, i) => `
+    <div>
+      <span>${dayLabel(date, i)}</span>
+      ${iconSvg(daily.weather_code[i], 22)}
+      <em>${fmtTemp(daily.temperature_2m_max[i])}°</em>
+    </div>
+  `).join('');
+
+  body.innerHTML = `
+    <div class="icon">${iconSvg(current.weather_code, 64)}</div>
+    <p class="city">${name}${country ? ', ' + country : ''}</p>
+    <p class="temp">${fmtTemp(current.temperature_2m)}°</p>
+    <p class="desc">${descForCode(current.weather_code)}</p>
+    <p class="range">H:${fmtTemp(daily.temperature_2m_max[0])}° L:${fmtTemp(daily.temperature_2m_min[0])}°</p>
+    <p class="hourly-title">Next 24 hours</p>
+    <canvas id="hourlyChart"></canvas>
+    <div class="forecast">${forecastHtml}</div>
+  `;
+  drawHourlyChart(hourly.time.slice(0, 24), hourly.temperature_2m.slice(0, 24));
+}
+
+async function fetchWeather(city) {
+  body.innerHTML = `<p class="state">Loading ${city}…</p>`;
+  try {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+    const geoData = await geoRes.json();
+    if (!geoData.results || geoData.results.length === 0) {
+      body.innerHTML = `<p class="state error">No city found called "${city}".</p>`;
+      return;
+    }
+    const { latitude, longitude, name, country } = geoData.results[0];
+    await fetchByCoords(latitude, longitude, name, country);
+    pushRecent(name);
+  } catch (err) {
+    body.innerHTML = `<p class="state error">Couldn't load weather right now. Try again.</p>`;
+  }
+}
+
+async function fetchByCoords(latitude, longitude, name, country) {
+  const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&hourly=temperature_2m&timezone=auto&forecast_days=4`);
+  const wData = await wRes.json();
+  lastData = { name, country, current: wData.current, daily: wData.daily, hourly: wData.hourly };
+  renderWeather();
+}
+
+async function useMyLocation() {
+  if (!navigator.geolocation) {
+    body.innerHTML = `<p class="state error">Geolocation isn't supported in this browser.</p>`;
+    return;
+  }
+  body.innerHTML = `<p class="state">Locating you…</p>`;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const { latitude, longitude } = pos.coords;
+    let name = "Your location", country = "";
+    try {
+      const revRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+      const revData = await revRes.json();
+      name = revData.city || revData.locality || name;
+      country = revData.countryName || "";
+    } catch (e) {}
+    input.value = name;
+    await fetchByCoords(latitude, longitude, name, country);
+    pushRecent(name);
+  }, () => {
+    body.innerHTML = `<p class="state error">Couldn't get your location. Check permissions.</p>`;
+  });
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const city = input.value.trim();
+  if (city) fetchWeather(city);
+});
+geoBtn.addEventListener('click', useMyLocation);
+unitCBtn.addEventListener('click', () => { unit='C'; unitCBtn.classList.add('active'); unitFBtn.classList.remove('active'); renderWeather(); });
+unitFBtn.addEventListener('click', () => { unit='F'; unitFBtn.classList.add('active'); unitCBtn.classList.remove('active'); renderWeather(); });
+
+renderRecent();
+fetchWeather('Cairo');
+</script>
+</body>
+</html>
